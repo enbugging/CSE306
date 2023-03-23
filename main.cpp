@@ -42,6 +42,8 @@ int main() {
 	Vector L(-10, 20, 40);
 	double I = 2E10;
 
+	int number_of_samples = 100;
+
 	std::vector<unsigned char> image(W * H * 3, 0);
 	for (int i = 0; i < H; i++) {
 		for (int j = 0; j < W; j++) {
@@ -52,10 +54,15 @@ int main() {
 			ray_dir[2] = -W / (2. * tan(alpha / 2.));
 			ray_dir.normalize();
 			Ray r(camera_center, ray_dir);
-			Vector color = scene.get_color(L, I, r, 10);
-			image[3 * (i * W + j) + 0] = std::min(255., std::pow(color[0], 0.45));
-			image[3 * (i * W + j) + 1] = std::min(255., std::pow(color[1], 0.45));
-			image[3 * (i * W + j) + 2] = std::min(255., std::pow(color[2], 0.45));
+			Vector color(0, 0, 0);
+			for (int sample = 0; sample < number_of_samples; sample++)
+			{
+				color = color + scene.get_color(L, I, r);
+			}
+			color = color / number_of_samples;
+			image[3 * (i * W + j) + 0] = std::min(255., std::pow(color[0], 1./2.2));
+			image[3 * (i * W + j) + 1] = std::min(255., std::pow(color[1], 1./2.2));
+			image[3 * (i * W + j) + 2] = std::min(255., std::pow(color[2], 1./2.2));
 		}
 	}
 	stbi_write_png("image.png", W, H, 3, &image[0], 0);

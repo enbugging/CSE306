@@ -5,6 +5,8 @@
 #include "ray.h"
 #include "sphere.h"
 
+#include <random>
+
 class Scene {
 public:
 	void addSphere(const Sphere& s) {
@@ -30,7 +32,7 @@ public:
 		return has_inter;
 	}
 
-	Vector get_color(const Vector& L, double I, Ray& ray, int bounces)
+	Vector get_color(const Vector& L, double I, Ray& ray, int bounces = 10)
 	{
 		if (bounces < 0) return Vector(0, 0, 0);	
 		Vector color(0, 0, 0);
@@ -48,13 +50,81 @@ public:
 				Ray reflected_ray(P + N * 1e-8, R);
 				return get_color(L, I, reflected_ray, bounces - 1);
 			}
+			/*
+			// Snell's law
 			if (objects[sphere_id].is_transparent)
 			{
+				Vector M = N;
 				double n1 = 1.0; // refractive index of the air
 				double n2 = 1.5; // refractive index of the glass sphere
-				if (dot(N, r.u) < 0) std::swap(n1, n2);
 				double n = n1 / n2;
-				
+
+				double dotprod = dot(ray.u, M);
+				if (dotprod > 0)
+				{
+					// exiting the sphere
+					n = 1 / n;
+					M = -M;
+				}
+
+				Vector tTangent, tNormal;
+				double tN;
+				tTangent = n * (ray.u - dot(ray.u, M) * M);
+				double sintheta = sqr(n) * (1 - sqr(dot(ray.u, M)));
+				if (sintheta > 1)
+				{
+					// total internal reflection
+					return color;
+				}
+				tNormal = -sqrt(1 - sintheta) * M;
+				Vector T = tTangent + tNormal;
+				Ray refracted_ray(P - M * 1e-8, T);
+				return get_color(L, I, refracted_ray, bounces - 1);
+			}
+			//*/
+			if (objects[sphere_id].is_transparent)
+			{
+				// Fresnel's law
+				Vector M = N;
+				double n1 = 1.0; // refractive index of the air
+				double n2 = 1.5; // refractive index of the glass sphere
+				double n = n1 / n2;
+
+				double dotprod = dot(ray.u, M);
+				if (dotprod > 0)
+				{
+					// exiting the sphere
+					n = 1 / n;
+					M = -M;
+				}
+
+				double k = sqr(n1 - n2) / sqr(n1 + n2);
+				double R = k + (1 - k) * pow(1 - std::abs(dotprod), 5); // probability of reflection
+				std::random_device rd;
+    			std::mt19937 gen(rd());
+				std::bernoulli_distribution d(R);
+				if (d(gen)) // reflection
+				{
+					Vector R = ray.u - 2 * dot(ray.u, M) * M;
+					Ray reflected_ray(P + M * 1e-8, R);
+					return get_color(L, I, reflected_ray, bounces - 1);
+				}
+				else // refraction
+				{
+					Vector tTangent, tNormal;
+					double tN;
+					tTangent = n * (ray.u - dot(ray.u, M) * M);
+					double sintheta = sqr(n) * (1 - sqr(dot(ray.u, M)));
+					if (sintheta > 1)
+					{
+						// total internal reflection
+						return color;
+					}
+					tNormal = -sqrt(1 - sintheta) * M;
+					Vector T = tTangent + tNormal;
+					Ray refracted_ray(P - M * 1e-8, T);
+					return get_color(L, I, refracted_ray, bounces - 1);
+				}
 			}
 
 			double d2 = (L - P).norm2();
