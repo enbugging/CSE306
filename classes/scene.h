@@ -6,6 +6,7 @@
 #include "sphere.h"
 
 #include <random>
+#include <cstring>
 
 class Scene {
 public:
@@ -50,67 +51,68 @@ public:
 				Ray reflected_ray(P + N * 1e-8, R);
 				return get_color(L, I, reflected_ray, bounces - 1);
 			}
-			/*
 			// Snell's law
-			if (objects[sphere_id].is_transparent)
+			if (objects[sphere_id].refraction_index)
 			{
-				Vector M = N;
-				double n1 = 1.0; // refractive index of the air
-				double n2 = 1.5; // refractive index of the glass sphere
-				double n = n1 / n2;
+				if (this->transparent_mode == "fresnel")
+				{
+					// Fresnel's law
+					Vector M = N;
+					double n1 = this->refraction_index; // refractive index of the air
+					double n2 = objects[sphere_id].refraction_index; // refractive index of the glass sphere
+					double n = n1 / n2;
 
-				double dotprod = dot(ray.u, M);
-				if (dotprod > 0)
-				{
-					// exiting the sphere
-					n = 1 / n;
-					M = -M;
-				}
+					double dotprod = dot(ray.u, M);
+					if (dotprod > 0)
+					{
+						// exiting the sphere
+						n = 1 / n;
+						M = -M;
+					}
 
-				Vector tTangent, tNormal;
-				double tN;
-				tTangent = n * (ray.u - dot(ray.u, M) * M);
-				double sintheta = sqr(n) * (1 - sqr(dot(ray.u, M)));
-				if (sintheta > 1)
-				{
-					// total internal reflection
-					return color;
+					double k = sqr(n1 - n2) / sqr(n1 + n2);
+					double R = k + (1 - k) * pow(1 - std::abs(dotprod), 5); // probability of reflection
+					std::random_device rd;
+					std::mt19937 gen(rd());
+					std::bernoulli_distribution d(R);
+					if (d(gen)) // reflection
+					{
+						Vector R = ray.u - 2 * dot(ray.u, M) * M;
+						Ray reflected_ray(P + M * 1e-8, R);
+						return get_color(L, I, reflected_ray, bounces - 1);
+					}
+					else // refraction
+					{
+						Vector tTangent, tNormal;
+						double tN;
+						tTangent = n * (ray.u - dot(ray.u, M) * M);
+						double sintheta = sqr(n) * (1 - sqr(dot(ray.u, M)));
+						if (sintheta > 1)
+						{
+							// total internal reflection
+							return color;
+						}
+						tNormal = -sqrt(1 - sintheta) * M;
+						Vector T = tTangent + tNormal;
+						Ray refracted_ray(P - M * 1e-8, T);
+						return get_color(L, I, refracted_ray, bounces - 1);
+					}
 				}
-				tNormal = -sqrt(1 - sintheta) * M;
-				Vector T = tTangent + tNormal;
-				Ray refracted_ray(P - M * 1e-8, T);
-				return get_color(L, I, refracted_ray, bounces - 1);
-			}
-			//*/
-			if (objects[sphere_id].is_transparent)
-			{
-				// Fresnel's law
-				Vector M = N;
-				double n1 = 1.0; // refractive index of the air
-				double n2 = 1.5; // refractive index of the glass sphere
-				double n = n1 / n2;
+				else 
+				{
+					Vector M = N;
+					double n1 = 1.0; // refractive index of the air
+					double n2 = 1.5; // refractive index of the glass sphere
+					double n = n1 / n2;
 
-				double dotprod = dot(ray.u, M);
-				if (dotprod > 0)
-				{
-					// exiting the sphere
-					n = 1 / n;
-					M = -M;
-				}
+					double dotprod = dot(ray.u, M);
+					if (dotprod > 0)
+					{
+						// exiting the sphere
+						n = 1 / n;
+						M = -M;
+					}
 
-				double k = sqr(n1 - n2) / sqr(n1 + n2);
-				double R = k + (1 - k) * pow(1 - std::abs(dotprod), 5); // probability of reflection
-				std::random_device rd;
-    			std::mt19937 gen(rd());
-				std::bernoulli_distribution d(R);
-				if (d(gen)) // reflection
-				{
-					Vector R = ray.u - 2 * dot(ray.u, M) * M;
-					Ray reflected_ray(P + M * 1e-8, R);
-					return get_color(L, I, reflected_ray, bounces - 1);
-				}
-				else // refraction
-				{
 					Vector tTangent, tNormal;
 					double tN;
 					tTangent = n * (ray.u - dot(ray.u, M) * M);
@@ -147,7 +149,14 @@ public:
 		return color;
 	}
 
+	Scene(double refraction_index = 1.0, 
+		std::string transparent_mode = "snell") : 
+		refraction_index(refraction_index), 
+		transparent_mode(transparent_mode) {}
+
 	std::vector<Sphere> objects;
+	double refraction_index;
+	std::string transparent_mode;
 };
 
 #endif

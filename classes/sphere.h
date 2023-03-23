@@ -11,12 +11,12 @@ public:
         double R, 
         const Vector& rho, 
         bool is_mirror = false, 
-        bool is_transparent = false) : 
+        double refraction_index = 0.0) : 
         C(C), 
         R(R), 
         rho(rho), 
         is_mirror(is_mirror), 
-        is_transparent(is_transparent) {}
+        refraction_index(refraction_index) {}
 
 	bool intersect(const Ray& r, Vector& P, Vector& N, double& t) {
 		double delta = sqr(dot(r.u, r.O - C)) - (r.O - C).norm2() + sqr(R);
@@ -44,7 +44,8 @@ public:
 	Vector C;
 	double R;
 	Vector rho;
-	bool is_mirror, is_transparent;
+	bool is_mirror;
+	double refraction_index;
 };
 
 #endif

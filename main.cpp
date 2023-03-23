@@ -13,16 +13,20 @@
 #include "classes/scene.h"
 
 #include <cmath>
+#include <ctime>
+#include <iostream>
 
 
 int main() {
 	int W = 512;
 	int H = 512;
 
-	Scene scene;
+	Scene scene(1.0, "fresnel");
 
-	Sphere S(Vector(0, 0, 0), 10.0, Vector(0, 0.5, 1), false, true);
+	Sphere S(Vector(0, 0, 0), 10.0, Vector(0, 0.5, 1), false, 1.5);
 	scene.addSphere(S);
+	Sphere S_interior(Vector(0, 0, 0), 10.0, Vector(0, 0.5, 1), false, 1);
+	scene.addSphere(S_interior);
 	
 	Sphere left_wall(Vector(-1000, 0, 0), 940.0, Vector(0.5, 0.8, 0.1));
 	scene.addSphere(left_wall);
@@ -37,13 +41,14 @@ int main() {
 	Sphere behind_wall(Vector(0, 0, 1000), 940.0, Vector(0.8, 0.2, 0.9));
 	scene.addSphere(behind_wall);
 
-	Vector camera_center(0, 0, 55);
+	Vector camera_center(0, 0, 35);
 	double alpha = 70. / 180. * M_PI;
 	Vector L(-10, 20, 40);
 	double I = 2E10;
 
-	int number_of_samples = 100;
+	int number_of_samples = 500;
 
+	std::clock_t t = std::clock();
 	std::vector<unsigned char> image(W * H * 3, 0);
 	for (int i = 0; i < H; i++) {
 		for (int j = 0; j < W; j++) {
@@ -65,6 +70,8 @@ int main() {
 			image[3 * (i * W + j) + 2] = std::min(255., std::pow(color[2], 1./2.2));
 		}
 	}
+	t = std::clock() - t;
+	std::cerr << "Time elapsed: " << ((float)t)/CLOCKS_PER_SEC << std::endl;
 	stbi_write_png("image.png", W, H, 3, &image[0], 0);
 
 	return 0;
