@@ -59,7 +59,7 @@ public:
 		return x*T1 + y*T2 + z*N;
 	}
 
-	Vector get_color(const Vector& L, double I, Ray& ray, int bounces = 5)
+	Vector get_color(const Vector& L, const double r_L, double I, Ray& ray, int bounces = 5)
 	{
 		if (bounces < 0) return Vector(0, 0, 0);	
 		Vector color(0, 0, 0);
@@ -75,7 +75,7 @@ public:
 			{
 				Vector R = ray.u - 2 * dot(ray.u, N) * N;
 				Ray reflected_ray(P + N * 1e-8, R);
-				return get_color(L, I, reflected_ray, bounces - 1);
+				return get_color(L, r_L, I, reflected_ray, bounces - 1);
 			}
 			// glass sphere
 			if (objects[sphere_id].refraction_index)
@@ -106,7 +106,7 @@ public:
 						//std::cerr << "reflection " << bounces << std::endl;
 						Vector R = ray.u - 2 * dot(ray.u, M) * M;
 						Ray reflected_ray(P + M * 1e-8, R);
-						return get_color(L, I, reflected_ray, bounces - 1);
+						return get_color(L, r_L, I, reflected_ray, bounces - 1);
 					}
 					else // refraction
 					{
@@ -123,7 +123,7 @@ public:
 						tNormal = -sqrt(1 - sintheta) * M;
 						Vector T = tTangent + tNormal;
 						Ray refracted_ray(P - M * 1e-8, T);
-						return get_color(L, I, refracted_ray, bounces - 1);
+						return get_color(L, r_L, I, refracted_ray, bounces - 1);
 					}
 				}
 				else 
@@ -154,7 +154,7 @@ public:
 					tNormal = -sqrt(1 - sintheta) * M;
 					Vector T = tTangent + tNormal;
 					Ray refracted_ray(P - M * 1e-8, T);
-					return get_color(L, I, refracted_ray, bounces - 1);
+					return get_color(L, r_L, I, refracted_ray, bounces - 1);
 				}
 			}
 
@@ -162,7 +162,16 @@ public:
 			double d2 = (L - P).norm2();
 			Vector lightdir = (L - P);
 			lightdir.normalize();
-			Ray shadowRay(P + N * 1e-8, lightdir);
+
+			// Vector D = -lightdir;
+			// D.normalize();
+			Vector xprime = r_L * random_cos(-lightdir) + L; // this line is supposed to be r_L * random_cos(D) + L
+			Vector Nprime = (xprime - L);
+			Nprime.normalize();
+			Vector omega_i = (xprime - P);
+			omega_i.normalize();
+			
+			Ray shadowRay(P + N * 1e-8, omega_i);
 			Vector shadow_P, shadow_N;
 			double shadow_t;
 			int shadow_id;
@@ -173,12 +182,12 @@ public:
 			}
 			if (!in_shadow)
 			{
-				color = I/(4*M_PI*d2) * this->objects[sphere_id].rho / M_PI * std::max(0.0, dot(lightdir, N));
+				color = I/(4*M_PI*d2) * this->objects[sphere_id].rho / M_PI * std::max(0.0, dot(omega_i, N));
 			}
 
 			// indirect component
 			Ray r(P+N*1e-8, random_cos(N));
-			Vector indirect_color = get_color(L, I, r, bounces - 1);
+			Vector indirect_color = get_color(L, r_L, I, r, bounces - 1);
 			color[0] += indirect_color[0] * this->objects[sphere_id].rho[0];
 			color[1] += indirect_color[1] * this->objects[sphere_id].rho[1];
 			color[2] += indirect_color[2] * this->objects[sphere_id].rho[2];

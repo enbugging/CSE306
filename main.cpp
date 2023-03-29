@@ -23,7 +23,7 @@ int main() {
 
 	Scene scene(1.0, "snell");
 
-	Sphere S(Vector(0, 0, 0), 10.0, Vector(1, 1, 1));
+	Sphere S(Vector(0, 0, 0), 10.0, Vector(1, 1, 1), false, 1.5);
 	scene.addSphere(S);
 	Sphere S_interior(Vector(0, 0, 0), 9.0, Vector(0, 0.5, 1), false, 1);
 	scene.addSphere(S_interior);
@@ -69,7 +69,7 @@ int main() {
 				ray_dir[2] = -W / (2. * tan(alpha / 2.));
 				ray_dir.normalize();
 				Ray r(camera_center, ray_dir);
-				color = color + scene.get_color(L, I, r);
+				color = color + scene.get_color(L, 0.3, I, r);
 			}
 			color = color / number_of_samples;
 			image[3 * (i * W + j) + 0] = std::min(255., std::pow(color[0], 1./2.2));
