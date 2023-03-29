@@ -8,8 +8,9 @@
 #include <random>
 #include <cstring>
 #include <iostream>
+#include <omp.h>
 
-static std::default_random_engine engine[omp_get_max_threads()];
+static std::default_random_engine engine[12];
 static std::uniform_real_distribution<double> uniform (0, 1);
 
 class Scene {

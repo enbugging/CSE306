@@ -49,20 +49,26 @@ int main() {
 	int number_of_samples = 20;
 
 	std::clock_t t = std::clock();
-	std::vector<unsigned char> image(W * H * 3, 0);
+	std::vector<unsigned char> image(W * H * 3, 0);	
+	static std::default_random_engine engine;
+	static std::uniform_real_distribution<double> uniform (0, 1);
+	double stddev = 0.5;
+
 	#pragma omp parallel for schedule(dynamic, 1)
 	for (int i = 0; i < H; i++) {
 		for (int j = 0; j < W; j++) {
-			
-			Vector ray_dir;
-			ray_dir[0] =  j - W / 2. + .5;
-			ray_dir[1] = -i + H / 2. - .5;
-			ray_dir[2] = -W / (2. * tan(alpha / 2.));
-			ray_dir.normalize();
-			Ray r(camera_center, ray_dir);
 			Vector color(0, 0, 0);
 			for (int sample = 0; sample < number_of_samples; sample++)
 			{
+				double r1 = uniform(engine);
+				double r2 = uniform(engine);
+
+				Vector ray_dir;
+				ray_dir[0] =  j - W / 2. + .5 + sqrt(-2 * log(r1))*cos(2 * M_PI * r2) * stddev;
+				ray_dir[1] = -i + H / 2. - .5 + sqrt(-2 * log(r1))*cos(2 * M_PI * r2) * stddev;
+				ray_dir[2] = -W / (2. * tan(alpha / 2.));
+				ray_dir.normalize();
+				Ray r(camera_center, ray_dir);
 				color = color + scene.get_color(L, I, r);
 			}
 			color = color / number_of_samples;
