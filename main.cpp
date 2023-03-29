@@ -21,11 +21,11 @@ int main() {
 	int W = 512;
 	int H = 512;
 
-	Scene scene(1.0, "fresnel");
+	Scene scene(1.0, "snell");
 
-	Sphere S(Vector(0, 0, 0), 10.0, Vector(0, 0.5, 1), false, 1.5);
+	Sphere S(Vector(0, 0, 0), 10.0, Vector(1, 1, 1));
 	scene.addSphere(S);
-	Sphere S_interior(Vector(0, 0, 0), 10.0, Vector(0, 0.5, 1), false, 1);
+	Sphere S_interior(Vector(0, 0, 0), 9.0, Vector(0, 0.5, 1), false, 1);
 	scene.addSphere(S_interior);
 	
 	Sphere left_wall(Vector(-1000, 0, 0), 940.0, Vector(0.5, 0.8, 0.1));
@@ -42,14 +42,15 @@ int main() {
 	scene.addSphere(behind_wall);
 
 	Vector camera_center(0, 0, 35);
-	double alpha = 70. / 180. * M_PI;
+	double alpha = 60. / 180. * M_PI;
 	Vector L(-10, 20, 40);
 	double I = 2E10;
 
-	int number_of_samples = 500;
+	int number_of_samples = 20;
 
 	std::clock_t t = std::clock();
 	std::vector<unsigned char> image(W * H * 3, 0);
+	#pragma omp parallel for schedule(dynamic, 1)
 	for (int i = 0; i < H; i++) {
 		for (int j = 0; j < W; j++) {
 			

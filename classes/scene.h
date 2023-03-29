@@ -7,6 +7,10 @@
 
 #include <random>
 #include <cstring>
+#include <iostream>
+
+static std::default_random_engine engine[omp_get_max_threads()];
+static std::uniform_real_distribution<double> uniform (0, 1);
 
 class Scene {
 public:
@@ -33,7 +37,28 @@ public:
 		return has_inter;
 	}
 
-	Vector get_color(const Vector& L, double I, Ray& ray, int bounces = 10)
+	Vector random_cos(Vector N) 
+	{
+		int current_thread = omp_get_thread_num();
+		double r1 = uniform(engine[current_thread]);
+		double r2 = uniform(engine[current_thread]);
+
+		double x = cos(2 * M_PI * r1) * sqrt(1 - r2);
+		double y = sin(2 * M_PI * r1) * sqrt(1 - r2);
+		double z = sqrt(r2);
+
+		Vector T1, T2;
+		if (abs(N[0]) < abs(N[1]) && abs(N[0]) < abs(N[2]))
+			T1 = Vector(0, -N[2], N[1]);
+		else if (abs(N[1]) < abs(N[0]) && abs(N[1]) < abs(N[2]))
+			T1 = Vector(-N[2], 0, N[0]);
+		else
+			T1 = Vector(-N[1], N[0], 0);
+		T2 = cross(N, T1);
+		return x*T1 + y*T2 + z*N;
+	}
+
+	Vector get_color(const Vector& L, double I, Ray& ray, int bounces = 5)
 	{
 		if (bounces < 0) return Vector(0, 0, 0);	
 		Vector color(0, 0, 0);
@@ -51,7 +76,7 @@ public:
 				Ray reflected_ray(P + N * 1e-8, R);
 				return get_color(L, I, reflected_ray, bounces - 1);
 			}
-			// Snell's law
+			// glass sphere
 			if (objects[sphere_id].refraction_index)
 			{
 				if (this->transparent_mode == "fresnel")
@@ -77,12 +102,14 @@ public:
 					std::bernoulli_distribution d(R);
 					if (d(gen)) // reflection
 					{
+						//std::cerr << "reflection " << bounces << std::endl;
 						Vector R = ray.u - 2 * dot(ray.u, M) * M;
 						Ray reflected_ray(P + M * 1e-8, R);
 						return get_color(L, I, reflected_ray, bounces - 1);
 					}
 					else // refraction
 					{
+						//std::cerr << "refraction " << bounces << std::endl;
 						Vector tTangent, tNormal;
 						double tN;
 						tTangent = n * (ray.u - dot(ray.u, M) * M);
@@ -100,6 +127,7 @@ public:
 				}
 				else 
 				{
+					// snell's law
 					Vector M = N;
 					double n1 = 1.0; // refractive index of the air
 					double n2 = 1.5; // refractive index of the glass sphere
@@ -129,6 +157,7 @@ public:
 				}
 			}
 
+			// direct component
 			double d2 = (L - P).norm2();
 			Vector lightdir = (L - P);
 			lightdir.normalize();
@@ -145,6 +174,13 @@ public:
 			{
 				color = I/(4*M_PI*d2) * this->objects[sphere_id].rho / M_PI * std::max(0.0, dot(lightdir, N));
 			}
+
+			// indirect component
+			Ray r(P+N*1e-8, random_cos(N));
+			Vector indirect_color = get_color(L, I, r, bounces - 1);
+			color[0] += indirect_color[0] * this->objects[sphere_id].rho[0];
+			color[1] += indirect_color[1] * this->objects[sphere_id].rho[1];
+			color[2] += indirect_color[2] * this->objects[sphere_id].rho[2];
 		}
 		return color;
 	}
@@ -157,6 +193,7 @@ public:
 	std::vector<Sphere> objects;
 	double refraction_index;
 	std::string transparent_mode;
+
 };
 
 #endif
