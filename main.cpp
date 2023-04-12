@@ -21,12 +21,16 @@ int main() {
 	int W = 512;
 	int H = 512;
 
-	Scene scene(1.0, "snell");
-
-	Sphere S(Vector(0, 0, 0), 10.0, Vector(1, 1, 1), false, 1.5);
+	Scene scene(1.0, "fresnel");
+	
+	Sphere S_mirror(Vector(-20, 0, 0), 10.0, Vector(1, 1, 1), true);
+	scene.addSphere(S_mirror);
+	Sphere S(Vector(0, 0, 0), 10.0, Vector(1, 1, 1), false, false, 1.5);
 	scene.addSphere(S);
-	Sphere S_interior(Vector(0, 0, 0), 9.0, Vector(0, 0.5, 1), false, 1);
-	scene.addSphere(S_interior);
+	Sphere S1(Vector(20, 0, 0), 10.0, Vector(1, 1, 1), false, false, 1.5);
+	scene.addSphere(S1);
+	Sphere S1_interior(Vector(20, 0, 0), 9.5, Vector(0, 0.5, 1), false, false, 1);
+	scene.addSphere(S1_interior);
 	
 	Sphere left_wall(Vector(-1000, 0, 0), 940.0, Vector(0.5, 0.8, 0.1));
 	scene.addSphere(left_wall);
@@ -41,12 +45,16 @@ int main() {
 	Sphere behind_wall(Vector(0, 0, 1000), 940.0, Vector(0.8, 0.2, 0.9));
 	scene.addSphere(behind_wall);
 
-	Vector camera_center(0, 0, 35);
+	Vector camera_center(0, 0, 55);
 	double alpha = 60. / 180. * M_PI;
 	Vector L(-10, 20, 40);
+	//Vector L(0, 20, 0);
+	double r_L = 5;	
 	double I = 2E10;
+	// to be uncommented for spherical light source
+	//scene.addSphere(Sphere(L, r_L, Vector(1.0, 1.0, 1.0), false, true));
 
-	int number_of_samples = 20;
+	int number_of_samples = 200;
 
 	std::clock_t t = std::clock();
 	std::vector<unsigned char> image(W * H * 3, 0);	
@@ -69,7 +77,7 @@ int main() {
 				ray_dir[2] = -W / (2. * tan(alpha / 2.));
 				ray_dir.normalize();
 				Ray r(camera_center, ray_dir);
-				color = color + scene.get_color(L, 0.3, I, r);
+				color = color + scene.get_color(L, r_L, I, r);
 			}
 			color = color / number_of_samples;
 			image[3 * (i * W + j) + 0] = std::min(255., std::pow(color[0], 1./2.2));

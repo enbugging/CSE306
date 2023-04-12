@@ -3,19 +3,22 @@
 
 #include "vector.h"
 #include "ray.h"
+#include "geometry.h"
 
-class Sphere {
+class Sphere : public Geometry {
 public:
 	Sphere(
         const Vector& C, 
         double R, 
         const Vector& rho, 
         bool is_mirror = false, 
+		bool is_light = false, 
         double refraction_index = 0.0) : 
         C(C), 
         R(R), 
         rho(rho), 
         is_mirror(is_mirror), 
+		is_light(is_light), 
         refraction_index(refraction_index) {}
 
 	bool intersect(const Ray& r, Vector& P, Vector& N, double& t) {
@@ -45,6 +48,7 @@ public:
 	double R;
 	Vector rho;
 	bool is_mirror;
+	bool is_light;
 	double refraction_index;
 };
 

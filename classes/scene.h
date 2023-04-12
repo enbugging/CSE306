@@ -3,6 +3,7 @@
 
 #include "vector.h"
 #include "ray.h"
+//#include "geometry.h"
 #include "sphere.h"
 
 #include <random>
@@ -71,6 +72,10 @@ public:
 
 		if (this->intersect(ray, P, N, t, sphere_id)) {
 			// if it is a mirror, then we need to reflect the ray
+			if (objects[sphere_id].is_light)
+			{
+				return I/(4*M_PI*(L - P).norm2()) * this->objects[sphere_id].rho / M_PI;
+			}
 			if (objects[sphere_id].is_mirror)
 			{
 				Vector R = ray.u - 2 * dot(ray.u, N) * N;
@@ -130,8 +135,8 @@ public:
 				{
 					// snell's law
 					Vector M = N;
-					double n1 = 1.0; // refractive index of the air
-					double n2 = 1.5; // refractive index of the glass sphere
+					double n1 = this->refraction_index; // refractive index of the air
+					double n2 = objects[sphere_id].refraction_index; // refractive index of the glass sphere
 					double n = n1 / n2;
 
 					double dotprod = dot(ray.u, M);
