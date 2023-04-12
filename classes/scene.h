@@ -16,8 +16,11 @@ static std::uniform_real_distribution<double> uniform (0, 1);
 
 class Scene {
 public:
-	void addSphere(const Sphere& s) {
-		objects.push_back(s);
+	void addObject(Sphere& s) {
+		objects.push_back(&s);
+	}
+	void addObject(TriangleMesh& s) {
+		objects.push_back(&s);
 	}
 
 	bool intersect(const Ray& ray, Vector& P, Vector& N, double& t, int& id) {
@@ -26,7 +29,7 @@ public:
 		for (int i = 0; i < objects.size(); i++) {
 			Vector localP, localN;
 			double localt;
-			if (objects[i].intersect(ray, localP, localN, localt)) {
+			if (objects[i]->intersect(ray, localP, localN, localt)) {
 				if (localt < t) {
 					t = localt;
 					P = localP;
@@ -72,25 +75,25 @@ public:
 
 		if (this->intersect(ray, P, N, t, sphere_id)) {
 			// if it is a mirror, then we need to reflect the ray
-			if (objects[sphere_id].is_light)
+			if (objects[sphere_id]->is_light)
 			{
-				return I/(4*M_PI*(L - P).norm2()) * this->objects[sphere_id].rho / M_PI;
+				return I/(4*M_PI*(L - P).norm2()) * this->objects[sphere_id]->rho / M_PI;
 			}
-			if (objects[sphere_id].is_mirror)
+			if (objects[sphere_id]->is_mirror)
 			{
 				Vector R = ray.u - 2 * dot(ray.u, N) * N;
 				Ray reflected_ray(P + N * 1e-8, R);
 				return get_color(L, r_L, I, reflected_ray, bounces - 1);
 			}
 			// glass sphere
-			if (objects[sphere_id].refraction_index)
+			if (objects[sphere_id]->refraction_index)
 			{
 				if (this->transparent_mode == "fresnel")
 				{
 					// Fresnel's law
 					Vector M = N;
 					double n1 = this->refraction_index; // refractive index of the air
-					double n2 = objects[sphere_id].refraction_index; // refractive index of the glass sphere
+					double n2 = objects[sphere_id]->refraction_index; // refractive index of the glass sphere
 					double n = n1 / n2;
 
 					double dotprod = dot(ray.u, M);
@@ -136,7 +139,7 @@ public:
 					// snell's law
 					Vector M = N;
 					double n1 = this->refraction_index; // refractive index of the air
-					double n2 = objects[sphere_id].refraction_index; // refractive index of the glass sphere
+					double n2 = objects[sphere_id]->refraction_index; // refractive index of the glass sphere
 					double n = n1 / n2;
 
 					double dotprod = dot(ray.u, M);
@@ -187,15 +190,15 @@ public:
 			}
 			if (!in_shadow)
 			{
-				color = I/(4*M_PI*d2) * this->objects[sphere_id].rho / M_PI * std::max(0.0, dot(omega_i, N));
+				color = I/(4*M_PI*d2) * this->objects[sphere_id]->rho / M_PI * std::max(0.0, dot(omega_i, N));
 			}
 
 			// indirect component
 			Ray r(P+N*1e-8, random_cos(N));
 			Vector indirect_color = get_color(L, r_L, I, r, bounces - 1);
-			color[0] += indirect_color[0] * this->objects[sphere_id].rho[0];
-			color[1] += indirect_color[1] * this->objects[sphere_id].rho[1];
-			color[2] += indirect_color[2] * this->objects[sphere_id].rho[2];
+			color[0] += indirect_color[0] * this->objects[sphere_id]->rho[0];
+			color[1] += indirect_color[1] * this->objects[sphere_id]->rho[1];
+			color[2] += indirect_color[2] * this->objects[sphere_id]->rho[2];
 		}
 		return color;
 	}
@@ -205,7 +208,7 @@ public:
 		refraction_index(refraction_index), 
 		transparent_mode(transparent_mode) {}
 
-	std::vector<Sphere> objects;
+	std::vector<Object*> objects;
 	double refraction_index;
 	std::string transparent_mode;
 

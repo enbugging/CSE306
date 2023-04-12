@@ -5,7 +5,7 @@
 #include "ray.h"
 #include "geometry.h"
 
-class Sphere : public Geometry {
+class Sphere : public Object {
 public:
 	Sphere(
         const Vector& C, 
@@ -16,12 +16,9 @@ public:
         double refraction_index = 0.0) : 
         C(C), 
         R(R), 
-        rho(rho), 
-        is_mirror(is_mirror), 
-		is_light(is_light), 
-        refraction_index(refraction_index) {}
+        ::Object(rho, is_mirror, is_light, refraction_index) {}
 
-	bool intersect(const Ray& r, Vector& P, Vector& N, double& t) {
+	bool intersect(const Ray& r, Vector& P, Vector& N, double& t) const {
 		double delta = sqr(dot(r.u, r.O - C)) - (r.O - C).norm2() + sqr(R);
 
 		if (delta >= 0) {

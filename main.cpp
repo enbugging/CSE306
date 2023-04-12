@@ -9,6 +9,7 @@
 
 #include "classes/vector.h"
 #include "classes/sphere.h"
+#include "classes/mesh.h"
 #include "classes/ray.h"
 #include "classes/scene.h"
 
@@ -22,29 +23,36 @@ int main() {
 	int H = 512;
 
 	Scene scene(1.0, "fresnel");
-	
-	Sphere S_mirror(Vector(-20, 0, 20), 10.0, Vector(1, 1, 1), true);
-	scene.addSphere(S_mirror);
-	Sphere S(Vector(0, 0, 0), 10.0, Vector(1, 1, 1), false, false, 1.5);
-	scene.addSphere(S);
-	Sphere S1(Vector(20, 0, -20), 10.0, Vector(1, 1, 1), false, false, 1.5);
-	scene.addSphere(S1);
-	Sphere S1_interior(Vector(20, 0, -20), 9.5, Vector(0, 0.5, 1), false, false, 1);
-	scene.addSphere(S1_interior);
-	
-	Sphere left_wall(Vector(-1000, 0, 0), 940.0, Vector(0.5, 0.8, 0.1));
-	scene.addSphere(left_wall);
-	Sphere right_wall(Vector(1000, 0, 0), 940.0, Vector(0.9, 0.2, 0.3));
-	scene.addSphere(right_wall);
-	Sphere ceilling(Vector(0, 1000, 0), 940.0, Vector(0.3, 0.5, 0.3));
-	scene.addSphere(ceilling);
-	Sphere floor(Vector(0, -1000, 0), 990.0, Vector(0.6, 0.5, 0.7));
-	scene.addSphere(floor);
-	Sphere front_wall(Vector(0, 0, -1000), 940.0, Vector(0.1, 0.6, 0.7));
-	scene.addSphere(front_wall);
-	Sphere behind_wall(Vector(0, 0, 1000), 940.0, Vector(0.8, 0.2, 0.9));
-	scene.addSphere(behind_wall);
 
+/*	
+	Sphere S_mirror(Vector(-20, 0, 20), 10.0, Vector(1, 1, 1), true);
+	scene.addObject(S_mirror);
+	Sphere S(Vector(0, 0, 0), 10.0, Vector(1, 1, 1), false, false, 1.5);
+	scene.addObject(S);
+	Sphere S1(Vector(20, 0, -20), 10.0, Vector(1, 1, 1), false, false, 1.5);
+	scene.addObject(S1);
+	Sphere S1_interior(Vector(20, 0, -20), 9.5, Vector(0, 0.5, 1), false, false, 1);
+	scene.addObject(S1_interior);
+//*/
+	TriangleMesh mesh(Vector(1, 1, 1));
+	mesh.readOBJ("C:\\Users\\ngdda\\OneDrive\\Course S6\\CSE306 - Computer graphics\\Models_F0202A090\\cat.obj");
+	mesh.scale_and_translate(0.6, Vector(0, -10, 0));
+	scene.addObject(mesh);
+
+/*
+	Sphere left_wall(Vector(-1000, 0, 0), 940.0, Vector(0.5, 0.8, 0.1));
+	scene.addObject(left_wall);
+	Sphere right_wall(Vector(1000, 0, 0), 940.0, Vector(0.9, 0.2, 0.3));
+	scene.addObject(right_wall);
+	Sphere ceilling(Vector(0, 1000, 0), 940.0, Vector(0.3, 0.5, 0.3));
+	scene.addObject(ceilling);
+	Sphere floor(Vector(0, -1000, 0), 990.0, Vector(0.6, 0.5, 0.7));
+	scene.addObject(floor);
+	Sphere front_wall(Vector(0, 0, -1000), 940.0, Vector(0.1, 0.6, 0.7));
+	scene.addObject(front_wall);
+	Sphere behind_wall(Vector(0, 0, 1000), 940.0, Vector(0.8, 0.2, 0.9));
+	scene.addObject(behind_wall);
+//*/
 	Vector camera_center(0, 0, 55);
 	double camera_radius = 5;
 	double alpha = 60. / 180. * M_PI;
@@ -55,7 +63,7 @@ int main() {
 	double r_L = 5;	
 	double I = 2E10;
 	// to be uncommented for spherical light source
-	//scene.addSphere(Sphere(L, r_L, Vector(1.0, 1.0, 1.0), false, true));
+	//scene.addObject(Sphere(L, r_L, Vector(1.0, 1.0, 1.0), false, true));
 
 	int number_of_samples = 40;
 
