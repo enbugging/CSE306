@@ -19,7 +19,17 @@ public:
 };
 
 
-bool intersect_triangle(const Ray& r, const Vector& A, const Vector& B,	const Vector& C, Vector& P, Vector& N, double& t)
+bool intersect_triangle(
+	const Ray& r, 
+	const Vector& A, 
+	const Vector& B, 
+	const Vector& C, 
+	const Vector& N_A, 
+	const Vector& N_B,
+	const Vector& N_C,
+	Vector& P, 
+	Vector& N, 
+	double& t)
 {
 	//std::cerr << "Run u slut\n";
 	Vector e1 = B - A;
@@ -35,14 +45,17 @@ bool intersect_triangle(const Ray& r, const Vector& A, const Vector& B,	const Ve
 	if (beta < 0 || gamma < 0 || beta + gamma > 1) return false;
 	double alpha = 1 - beta - gamma;
 	P = t * r.u + r.O;
+	N = alpha * N_A + beta * N_B + gamma * N_C; 
 	N.normalize();
 	return true;
 }
 
+class BVH;
+
 class TriangleMesh : public Object {
 public:
   ~TriangleMesh() {}
-	TriangleMesh(const Vector& rho, bool is_mirror = false, bool is_light = false, double refraction_index = 0.0): Object(rho, is_mirror, is_light, refraction_index) {};
+	TriangleMesh(const Vector& rho, bool is_mirror = false, bool is_light = false, double refraction_index = 0.0): bvh(nullptr), Object(rho, is_mirror, is_light, refraction_index) {};
 	
 	void readOBJ(const char* obj) {
 
@@ -227,18 +240,23 @@ public:
 		}
 	}
 	
-	bool intersect(const Ray& r, Vector& P, Vector& N, double& t) const {
+	// This is a very slow implementation of ray-triangle intersection, without BVH.
+	bool intersect_naive(const Ray& r, Vector& P, Vector& N, double& t, int start_index = 0, int end_index = -1) const {
+		if (end_index == -1) end_index = indices.size();
 		t = std::numeric_limits<double>::max();
 		bool has_inter = false;
 		for (int i = 0; i < indices.size(); i++) {
 			const Vector& A = vertices[indices[i].vtxi];
 			const Vector& B = vertices[indices[i].vtxj];
 			const Vector& C = vertices[indices[i].vtxk];
+			const Vector& N_A = normals[indices[i].ni];
+			const Vector& N_B = normals[indices[i].nj];
+			const Vector& N_C = normals[indices[i].nk];
 
 			Vector local_P;
 			Vector local_N;
 			double local_t;
-			bool local_has_inter = intersect_triangle(r, A, B, C, local_P, local_N, local_t);
+			bool local_has_inter = intersect_triangle(r, A, B, C, N_A, N_B, N_C, local_P, local_N, local_t);
 			if (local_has_inter && local_t < t) {
 				has_inter = true;
 				t = local_t;
@@ -249,10 +267,114 @@ public:
 		return has_inter;
 	}
 
+	void buildBVH();
+	bool intersect(const Ray& r, Vector& P, Vector& N, double& t) const;
+
+	BVH* bvh;
 	std::vector<TriangleIndices> indices;
 	std::vector<Vector> vertices;
 	std::vector<Vector> normals;
 	std::vector<Vector> uvs;
 	std::vector<Vector> vertexcolors;
-	
 };
+
+class BVH {
+public:
+    BVH(TriangleMesh* mesh, int start_index = 0, int end_index = -1) {
+        if(end_index == -1) end_index = mesh->indices.size();
+        this->start_index = start_index;
+        this->end_index = end_index;
+        int n = end_index - start_index;
+        bx_min = 0, bx_max = 0, by_min = 0, by_max = 0, bz_min = 0, bz_max = 0;
+        for (int i = start_index; i < end_index; i++)
+        {
+            bx_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[0]);
+            bx_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[0]);
+            bx_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[0]);
+            bx_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[0]);
+            bx_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[0]);
+            bx_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[0]);
+            
+            by_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[1]);
+            by_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[1]);
+            by_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[1]);
+            by_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[1]);
+            by_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[1]);
+            by_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[1]);
+
+            bz_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[2]);
+            bz_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[2]);
+            bz_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[2]);
+            bz_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[2]);
+            bz_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[2]);
+            bz_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[2]);
+        }
+
+        int div = 0;
+        double mean = (bx_max + bx_min) / 2;
+        if (by_max - by_min > bx_max - bx_min) div = 1, mean = (by_max + by_min) / 2;
+        if (bz_max - bz_min > by_max - by_min) div = 2, mean = (bz_max + bz_min) / 2;
+        int pivot_index = start_index;
+        for (int i = start_index; i < end_index; i++)
+        {
+            Vector barycenter = 
+                (mesh->vertices[mesh->indices[i].vtxi] + 
+                mesh->vertices[mesh->indices[i].vtxj] + 
+                mesh->vertices[mesh->indices[i].vtxk]) / 3;
+            if (barycenter.data[div] < mean)
+            {
+                std::swap(mesh->indices[i], mesh->indices[pivot_index]);
+                pivot_index++;
+            }
+        }
+        if (pivot_index <= start_index || pivot_index >= end_index || n < 5)
+        {
+            child_left = child_right = nullptr;
+            return;
+        }
+        child_left = new BVH(mesh, start_index, pivot_index);
+        child_right = new BVH(mesh, pivot_index, end_index);
+    }
+
+    bool intersect(const TriangleMesh* mesh, const Ray& r, Vector& P, Vector& N, double& t) const {
+        // calculate intersection of the ray with the bounding box
+        double
+            t1_x = (bx_min - r.O.data[0]) / r.u.data[0], 
+            t2_x = (bx_max - r.O.data[0]) / r.u.data[0], 
+            t1_y = (by_min - r.O.data[1]) / r.u.data[1],
+            t2_y = (by_max - r.O.data[1]) / r.u.data[1],
+            t1_z = (bz_min - r.O.data[2]) / r.u.data[2],
+            t2_z = (bz_max - r.O.data[2]) / r.u.data[2];
+		if (t1_x > t2_x) std::swap(t1_x, t2_x);
+		if (t1_y > t2_y) std::swap(t1_y, t2_y);
+		if (t1_z > t2_z) std::swap(t1_z, t2_z);
+		double
+            min_t2 = std::min(t2_x, std::min(t2_y, t2_z)),
+            max_t1 = std::max(t1_x, std::max(t1_y, t1_z));
+        // if there is no intersection, return false
+        if (max_t1 <= min_t2) return false;
+
+        // else, recursively call intersect() on the children
+        if (child_left == nullptr || child_right == nullptr) return mesh->intersect_naive(r, P, N, t, this->start_index, this->end_index);
+        bool left = child_left->intersect(mesh, r, P, N, t);
+        bool right = child_right->intersect(mesh, r, P, N, t);
+        return left || right;
+    }
+
+    int start_index, end_index;
+    double bx_min, bx_max, by_min, by_max, bz_min, bz_max;
+    BVH* child_left;
+    BVH* child_right;
+};
+
+void TriangleMesh::buildBVH() {
+	this->bvh = new BVH(this);
+}
+
+bool TriangleMesh::intersect(const Ray& r, Vector& P, Vector& N, double& t) const {
+	if (this->bvh == nullptr) {
+		std::cerr<<"Warning: BVH is not built. Using naive intersection. Performance will be bad."<<std::endl;
+		return this->intersect_naive(r, P, N, t);
+	}
+	return this->bvh->intersect(this, r, P, N, t);
+}

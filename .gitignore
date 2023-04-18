@@ -3,3 +3,4 @@ build
 .vscode
 CMakeCache.txt
 CMakeFiles
+build-linux

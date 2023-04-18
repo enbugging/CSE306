@@ -37,6 +37,7 @@ int main() {
 	TriangleMesh mesh(Vector(1, 1, 1));
 	mesh.readOBJ("C:\\Users\\ngdda\\OneDrive\\Course S6\\CSE306 - Computer graphics\\Models_F0202A090\\cat.obj");
 	mesh.scale_and_translate(0.6, Vector(0, -10, 0));
+	mesh.buildBVH();
 	scene.addObject(mesh);
 
 /*
