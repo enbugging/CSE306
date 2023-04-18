@@ -31,14 +31,12 @@ bool intersect_triangle(
 	Vector& N, 
 	double& t)
 {
-	//std::cerr << "Run u slut\n";
 	Vector e1 = B - A;
 	Vector e2 = C - A;
 	N = cross(e1, e2);
 	double inverse_uN = 1 / (dot(r.u, N));
 	t = dot (A - r.O, N) * inverse_uN;
 	if (t < 0) return false;
-	//std::cerr << "Run u bitch\n";
 	Vector OAcorssu = cross(A - r.O, r.u);
 	double beta = dot(e2, OAcorssu) * inverse_uN;
 	double gamma = -dot(e1, OAcorssu) * inverse_uN;
@@ -284,60 +282,78 @@ public:
         if(end_index == -1) end_index = mesh->indices.size();
         this->start_index = start_index;
         this->end_index = end_index;
-        int n = end_index - start_index;
-        bx_min = 0, bx_max = 0, by_min = 0, by_max = 0, bz_min = 0, bz_max = 0;
-        for (int i = start_index; i < end_index; i++)
-        {
-            bx_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[0]);
-            bx_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[0]);
-            bx_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[0]);
-            bx_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[0]);
-            bx_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[0]);
-            bx_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[0]);
-            
-            by_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[1]);
-            by_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[1]);
-            by_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[1]);
-            by_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[1]);
-            by_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[1]);
-            by_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[1]);
 
-            bz_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[2]);
-            bz_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[2]);
-            bz_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[2]);
-            bz_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[2]);
-            bz_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[2]);
-            bz_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[2]);
-        }
+		if (end_index - start_index < 5)
+		{
+			// the box would be too small, so we don't build a BVH
+			child_left = child_right = nullptr;
+			// but we still compute the bounding box
+			bx_min = 0, bx_max = 0, by_min = 0, by_max = 0, bz_min = 0, bz_max = 0;
+			for (int i = start_index; i < end_index; i++)
+			{
+				bx_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[0]);
+				bx_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[0]);
+				bx_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[0]);
+				bx_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[0]);
+				bx_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[0]);
+				bx_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[0]);
+				
+				by_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[1]);
+				by_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[1]);
+				by_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[1]);
+				by_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[1]);
+				by_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[1]);
+				by_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[1]);
 
-        int div = 0;
-        double mean = (bx_max + bx_min) / 2;
-        if (by_max - by_min > bx_max - bx_min) div = 1, mean = (by_max + by_min) / 2;
-        if (bz_max - bz_min > by_max - by_min) div = 2, mean = (bz_max + bz_min) / 2;
-        int pivot_index = start_index;
-        for (int i = start_index; i < end_index; i++)
-        {
-            Vector barycenter = 
-                (mesh->vertices[mesh->indices[i].vtxi] + 
-                mesh->vertices[mesh->indices[i].vtxj] + 
-                mesh->vertices[mesh->indices[i].vtxk]) / 3;
-            if (barycenter.data[div] < mean)
-            {
-                std::swap(mesh->indices[i], mesh->indices[pivot_index]);
-                pivot_index++;
-            }
-        }
-        if (pivot_index <= start_index || pivot_index >= end_index || n < 5)
-        {
-            child_left = child_right = nullptr;
-            return;
-        }
-        child_left = new BVH(mesh, start_index, pivot_index);
-        child_right = new BVH(mesh, pivot_index, end_index);
+				bz_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[2]);
+				bz_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[2]);
+				bz_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[2]);
+				bz_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[2]);
+				bz_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[2]);
+				bz_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[2]);
+			}
+		}
+		else
+		{
+			// we build the BVH recursively first, then merge the bounding boxes
+			int div = 0;
+			double mean = (bx_max + bx_min) / 2;
+			if (by_max - by_min > bx_max - bx_min) div = 1, mean = (by_max + by_min) / 2;
+			if (bz_max - bz_min > by_max - by_min) div = 2, mean = (bz_max + bz_min) / 2;
+			int pivot_index = start_index;
+			for (int i = start_index; i < end_index; i++)
+			{
+				Vector barycenter = 
+					(mesh->vertices[mesh->indices[i].vtxi] + 
+					mesh->vertices[mesh->indices[i].vtxj] + 
+					mesh->vertices[mesh->indices[i].vtxk]) / 3;
+				if (barycenter.data[div] < mean)
+				{
+					std::swap(mesh->indices[i], mesh->indices[pivot_index]);
+					pivot_index++;
+				}
+			}
+			if (pivot_index <= start_index || pivot_index >= end_index-1)
+			{
+				child_left = child_right = nullptr;
+				return;
+			}
+			child_left = new BVH(mesh, start_index, pivot_index);
+			child_right = new BVH(mesh, pivot_index, end_index);
+			bx_min = std::min(child_left->bx_min, child_right->bx_min);
+			bx_max = std::max(child_left->bx_max, child_right->bx_max);
+			by_min = std::min(child_left->by_min, child_right->by_min);
+			by_max = std::max(child_left->by_max, child_right->by_max);
+			bz_min = std::min(child_left->bz_min, child_right->bz_min);
+			bz_max = std::max(child_left->bz_max, child_right->bz_max);
+		}
     }
 
-    bool intersect(const TriangleMesh* mesh, const Ray& r, Vector& P, Vector& N, double& t) const {
-        // calculate intersection of the ray with the bounding box
+    bool intersect(const TriangleMesh* mesh, const Ray& r, Vector& P, Vector& N, double& t, double best_t = 0) const {
+        // if there is no bounding box, recursively call intersect() on the children
+        if (child_left == nullptr || child_right == nullptr) return mesh->intersect_naive(r, P, N, t, this->start_index, this->end_index);
+        
+		// else, calculate intersection of the ray with the bounding box
         double
             t1_x = (bx_min - r.O.data[0]) / r.u.data[0], 
             t2_x = (bx_max - r.O.data[0]) / r.u.data[0], 
@@ -352,13 +368,12 @@ public:
             min_t2 = std::min(t2_x, std::min(t2_y, t2_z)),
             max_t1 = std::max(t1_x, std::max(t1_y, t1_z));
         // if there is no intersection, return false
-        if (max_t1 <= min_t2) return false;
+        if (max_t1 <= min_t2 || max_t1 < best_t) return false;
 
-        // else, recursively call intersect() on the children
-        if (child_left == nullptr || child_right == nullptr) return mesh->intersect_naive(r, P, N, t, this->start_index, this->end_index);
-        bool left = child_left->intersect(mesh, r, P, N, t);
-        bool right = child_right->intersect(mesh, r, P, N, t);
-        return left || right;
+        bool left = child_left->intersect(mesh, r, P, N, t, max_t1);
+        if (left) return true;
+		bool right = child_right->intersect(mesh, r, P, N, t, max_t1);
+        return right;
     }
 
     int start_index, end_index;
