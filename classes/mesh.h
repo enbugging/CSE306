@@ -243,7 +243,8 @@ public:
 		if (end_index == -1) end_index = indices.size();
 		t = std::numeric_limits<double>::max();
 		bool has_inter = false;
-		for (int i = 0; i < indices.size(); i++) {
+		if (end_index - start_index >= 5) printf("Something is wrong! The gap is: %d\n" , end_index - start_index); 
+		for (int i = start_index; i < end_index; i++) {
 			const Vector& A = vertices[indices[i].vtxi];
 			const Vector& B = vertices[indices[i].vtxj];
 			const Vector& C = vertices[indices[i].vtxk];
@@ -283,43 +284,61 @@ public:
         this->start_index = start_index;
         this->end_index = end_index;
 
+		// we compute the bounding box
+		bx_min = std::numeric_limits<double>::max(), bx_max = -std::numeric_limits<double>::max(),
+		by_min = std::numeric_limits<double>::max(), by_max = -std::numeric_limits<double>::max(),
+		bz_min = std::numeric_limits<double>::max(), bz_max = -std::numeric_limits<double>::max();
+		double
+			baryx_min = std::numeric_limits<double>::max(), baryx_max = -std::numeric_limits<double>::max(),
+			baryy_min = std::numeric_limits<double>::max(), baryy_max = -std::numeric_limits<double>::max(),
+			baryz_min = std::numeric_limits<double>::max(), baryz_max = -std::numeric_limits<double>::max();
+		for (int i = start_index; i < end_index; i++)
+		{
+			bx_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[0]);
+			bx_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[0]);
+			bx_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[0]);
+			bx_max = std::max(bx_max, mesh->vertices[mesh->indices[i].vtxj].data[0]);
+			bx_max = std::max(bx_max, mesh->vertices[mesh->indices[i].vtxk].data[0]);
+			bx_max = std::max(bx_max, mesh->vertices[mesh->indices[i].vtxk].data[0]);
+			
+			by_min = std::min(by_min, mesh->vertices[mesh->indices[i].vtxi].data[1]);
+			by_min = std::min(by_min, mesh->vertices[mesh->indices[i].vtxi].data[1]);
+			by_min = std::min(by_min, mesh->vertices[mesh->indices[i].vtxj].data[1]);
+			by_max = std::max(by_max, mesh->vertices[mesh->indices[i].vtxj].data[1]);
+			by_max = std::max(by_max, mesh->vertices[mesh->indices[i].vtxk].data[1]);
+			by_max = std::max(by_max, mesh->vertices[mesh->indices[i].vtxk].data[1]);
+
+			bz_min = std::min(bz_min, mesh->vertices[mesh->indices[i].vtxi].data[2]);
+			bz_min = std::min(bz_min, mesh->vertices[mesh->indices[i].vtxi].data[2]);
+			bz_min = std::min(bz_min, mesh->vertices[mesh->indices[i].vtxj].data[2]);
+			bz_max = std::max(bz_max, mesh->vertices[mesh->indices[i].vtxj].data[2]);
+			bz_max = std::max(bz_max, mesh->vertices[mesh->indices[i].vtxk].data[2]);
+			bz_max = std::max(bz_max, mesh->vertices[mesh->indices[i].vtxk].data[2]);
+
+			Vector barycenter = 
+				(mesh->vertices[mesh->indices[i].vtxi] + 
+				mesh->vertices[mesh->indices[i].vtxj] + 
+				mesh->vertices[mesh->indices[i].vtxk]) / 3;
+			baryx_min = std::min(baryx_min, barycenter.data[0]);
+			baryx_max = std::max(baryx_max, barycenter.data[0]);
+			baryy_min = std::min(baryy_min, barycenter.data[1]);
+			baryy_max = std::max(baryy_max, barycenter.data[1]);
+			baryz_min = std::min(baryz_min, barycenter.data[2]);
+			baryz_max = std::max(baryz_max, barycenter.data[2]);
+		}
 		if (end_index - start_index < 5)
 		{
 			// the box would be too small, so we don't build a BVH
 			child_left = child_right = nullptr;
-			// but we still compute the bounding box
-			bx_min = 0, bx_max = 0, by_min = 0, by_max = 0, bz_min = 0, bz_max = 0;
-			for (int i = start_index; i < end_index; i++)
-			{
-				bx_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[0]);
-				bx_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[0]);
-				bx_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[0]);
-				bx_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[0]);
-				bx_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[0]);
-				bx_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[0]);
-				
-				by_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[1]);
-				by_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[1]);
-				by_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[1]);
-				by_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[1]);
-				by_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[1]);
-				by_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[1]);
-
-				bz_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[2]);
-				bz_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxi].data[2]);
-				bz_min = std::min(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[2]);
-				bz_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxj].data[2]);
-				bz_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[2]);
-				bz_max = std::max(bx_min, mesh->vertices[mesh->indices[i].vtxk].data[2]);
-			}
 		}
 		else
 		{
 			// we build the BVH recursively first, then merge the bounding boxes
 			int div = 0;
-			double mean = (bx_max + bx_min) / 2;
-			if (by_max - by_min > bx_max - bx_min) div = 1, mean = (by_max + by_min) / 2;
-			if (bz_max - bz_min > by_max - by_min) div = 2, mean = (bz_max + bz_min) / 2;
+			double diff = baryx_max - baryx_min, mean = (baryx_max + baryx_min) / 2;
+			if (baryy_max - baryy_min > diff) div = 1, mean = (baryy_max + baryy_min) / 2, diff = baryy_max - baryy_min;
+			if (baryz_max - baryz_min > diff) div = 2, mean = (baryz_max + baryz_min) / 2, diff = baryz_max - baryz_min;
+			double bary_min = 10000, bary_max = -10000;
 			int pivot_index = start_index;
 			for (int i = start_index; i < end_index; i++)
 			{
@@ -333,25 +352,24 @@ public:
 					pivot_index++;
 				}
 			}
-			if (pivot_index <= start_index || pivot_index >= end_index-1)
+			if (pivot_index <= start_index || pivot_index >= end_index)
 			{
+				printf("This is triggered. %d %d %d %d %f\n", start_index, pivot_index, end_index, div, mean);
 				child_left = child_right = nullptr;
 				return;
 			}
 			child_left = new BVH(mesh, start_index, pivot_index);
 			child_right = new BVH(mesh, pivot_index, end_index);
-			bx_min = std::min(child_left->bx_min, child_right->bx_min);
-			bx_max = std::max(child_left->bx_max, child_right->bx_max);
-			by_min = std::min(child_left->by_min, child_right->by_min);
-			by_max = std::max(child_left->by_max, child_right->by_max);
-			bz_min = std::min(child_left->bz_min, child_right->bz_min);
-			bz_max = std::max(child_left->bz_max, child_right->bz_max);
 		}
     }
 
-    bool intersect(const TriangleMesh* mesh, const Ray& r, Vector& P, Vector& N, double& t, double best_t = 0) const {
+    bool intersect(const TriangleMesh* mesh, const Ray& r, Vector& P, Vector& N, double& t, double best_t = 0, int depth = 0) const {
         // if there is no bounding box, recursively call intersect() on the children
-        if (child_left == nullptr || child_right == nullptr) return mesh->intersect_naive(r, P, N, t, this->start_index, this->end_index);
+        if (child_left == nullptr || child_right == nullptr)
+		{
+			if (this->end_index - this->start_index >= 5) printf("Ok, something is very wrong here. The depth is %d\n", depth);
+			return mesh->intersect_naive(r, P, N, t, this->start_index, this->end_index);
+		}
         
 		// else, calculate intersection of the ray with the bounding box
         double
@@ -370,9 +388,9 @@ public:
         // if there is no intersection, return false
         if (max_t1 <= min_t2 || max_t1 < best_t) return false;
 
-        bool left = child_left->intersect(mesh, r, P, N, t, max_t1);
+        bool left = child_left->intersect(mesh, r, P, N, t, max_t1, depth+1);
         if (left) return true;
-		bool right = child_right->intersect(mesh, r, P, N, t, max_t1);
+		bool right = child_right->intersect(mesh, r, P, N, t, max_t1, depth+1);
         return right;
     }
 
