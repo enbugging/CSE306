@@ -40,7 +40,7 @@ int main() {
 	mesh.buildBVH();
 	scene.addObject(mesh);
 
-/*
+//*
 	Sphere left_wall(Vector(-1000, 0, 0), 940.0, Vector(0.5, 0.8, 0.1));
 	scene.addObject(left_wall);
 	Sphere right_wall(Vector(1000, 0, 0), 940.0, Vector(0.9, 0.2, 0.3));
@@ -54,10 +54,11 @@ int main() {
 	Sphere behind_wall(Vector(0, 0, 1000), 940.0, Vector(0.8, 0.2, 0.9));
 	scene.addObject(behind_wall);
 //*/
-	Vector camera_center(0, 0, 55);
+
+	Vector camera_center(0, 0, 50);
 	double camera_radius = 5;
 	double alpha = 60. / 180. * M_PI;
-	double D = 55;
+	double D = 50;
 
 	Vector L(-10, 20, 40);
 	//Vector L(0, 20, 0);
@@ -66,7 +67,7 @@ int main() {
 	// to be uncommented for spherical light source
 	//scene.addObject(Sphere(L, r_L, Vector(1.0, 1.0, 1.0), false, true));
 
-	int number_of_samples = 40;
+	int number_of_samples = 64;
 
 	std::clock_t t = std::clock();
 	std::vector<unsigned char> image(W * H * 3, 0);	
@@ -76,8 +77,10 @@ int main() {
 
 	#pragma omp parallel for schedule(dynamic, 1)
 	for (int i = 0; i < H; i++) {
+		#pragma omp parallel for schedule(dynamic, 1)
 		for (int j = 0; j < W; j++) {
 			Vector color(0, 0, 0);
+			#pragma omp parallel for schedule(dynamic, 1)
 			for (int sample = 0; sample < number_of_samples; sample++)
 			{
 				double r1 = uniform(engine);
@@ -88,14 +91,18 @@ int main() {
 				ray_dir[1] = -i + H / 2. - .5 + sqrt(-2 * log(r1))*cos(2 * M_PI * r2) * stddev;
 				ray_dir[2] = -W / (2. * tan(alpha / 2.));
 				ray_dir.normalize();
+				
+				// Focus of camera
 				Vector focus_point_P = camera_center + D/abs(ray_dir[2]) * ray_dir;
 				Vector offset_camera_center = camera_center;
+				/*
 				r1 = uniform(engine) * camera_radius;
 				r2 = uniform(engine) * 2 * M_PI;
 				offset_camera_center[0] += r1 * cos(r2);
 				offset_camera_center[1] += r1 * sin(r2);
 				ray_dir = focus_point_P - offset_camera_center;
 				ray_dir.normalize();
+				*/
 				Ray r(offset_camera_center, ray_dir);
 				color = color + scene.get_color(L, r_L, I, r);
 			}
