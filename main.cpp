@@ -24,6 +24,18 @@ int main() {
 
 	Scene scene(1.0, "fresnel");
 
+	Sphere S(Vector(0, 0, 0), 10.0, Vector(1, 1, 1));
+	scene.addObject(S);
+/*	
+	Sphere S_mirror(Vector(-20, 0, 00), 10.0, Vector(1, 1, 1), true);
+	scene.addObject(S_mirror);
+	Sphere S(Vector(0, 0, 0), 10.0, Vector(1, 1, 1), false, false, 1.5);
+	scene.addObject(S);
+	Sphere S1(Vector(20, 0, 0), 10.0, Vector(1, 1, 1), false, false, 1.5);
+	scene.addObject(S1);
+	Sphere S1_interior(Vector(20, 0, -20), 9.5, Vector(0, 0.5, 1), false, false, 1);
+	scene.addObject(S1_interior);
+//*/
 /*	
 	Sphere S_mirror(Vector(-20, 0, 20), 10.0, Vector(1, 1, 1), true);
 	scene.addObject(S_mirror);
@@ -34,12 +46,13 @@ int main() {
 	Sphere S1_interior(Vector(20, 0, -20), 9.5, Vector(0, 0.5, 1), false, false, 1);
 	scene.addObject(S1_interior);
 //*/
+/*
 	TriangleMesh mesh(Vector(1, 1, 1));
 	mesh.readOBJ("C:\\Users\\ngdda\\OneDrive\\Course S6\\CSE306 - Computer graphics\\Models_F0202A090\\cat.obj");
 	mesh.scale_and_translate(0.6, Vector(0, -10, 0));
 	mesh.buildBVH();
 	scene.addObject(mesh);
-
+//*/
 //*
 	Sphere left_wall(Vector(-1000, 0, 0), 940.0, Vector(0.5, 0.8, 0.1));
 	scene.addObject(left_wall);
@@ -62,7 +75,7 @@ int main() {
 
 	Vector L(-10, 20, 40);
 	//Vector L(0, 20, 0);
-	double r_L = 5;	
+	double r_L = 0;	
 	double I = 2E10;
 	// to be uncommented for spherical light source
 	//scene.addObject(Sphere(L, r_L, Vector(1.0, 1.0, 1.0), false, true));
@@ -71,7 +84,7 @@ int main() {
 
 	std::clock_t t = std::clock();
 	std::vector<unsigned char> image(W * H * 3, 0);	
-	static std::default_random_engine engine;
+	static std::default_random_engine engine[12];
 	static std::uniform_real_distribution<double> uniform (0, 1);
 	double stddev = 0.5;
 
@@ -83,8 +96,8 @@ int main() {
 			#pragma omp parallel for schedule(dynamic, 1)
 			for (int sample = 0; sample < number_of_samples; sample++)
 			{
-				double r1 = uniform(engine);
-				double r2 = uniform(engine);
+				double r1 = uniform(engine[omp_get_thread_num()]);
+				double r2 = uniform(engine[omp_get_thread_num()]);
 
 				Vector ray_dir;
 				ray_dir[0] =  j - W / 2. + .5 + sqrt(-2 * log(r1))*cos(2 * M_PI * r2) * stddev;
@@ -102,7 +115,7 @@ int main() {
 				offset_camera_center[1] += r1 * sin(r2);
 				ray_dir = focus_point_P - offset_camera_center;
 				ray_dir.normalize();
-				*/
+				//*/
 				Ray r(offset_camera_center, ray_dir);
 				color = color + scene.get_color(L, r_L, I, r);
 			}
